@@ -23,18 +23,28 @@
   },
   "license": "MIT",
   "dependencies": {
-    "recast": "~0.8.0"
+    "recast": "~0.20.3"
   },
   "devDependencies": {
-    "requirejs": "^2.1.14",
+    "requirejs": "^2.3.6",
     "es6-module-transpiler": "^0.10.0",
-    "chai": "~1.8.1",
-    "mocha": "~1.15.1",
-    "xunit-file": "*",
-    "istanbul": "~0.1.46"
+    "chai": "~4.2.0",
+    "mocha": "~8.1.3",
+    "nyc": "^15.1.0"
   },
   "scripts": {
-    "pretest": "./node_modules/.bin/compile-modules convert -f ../../../../index.js test/**/*.js -o ./build",
-    "test": "_mocha test/formatter --reporter spec"
+    "pretest": "nyc ./node_modules/.bin/compile-modules convert -f ../../../../index.js test/**/*.js -o ./build",
+    "test": "mocha"
+  },
+  "nyc": {
+    "checkCoverage": true,
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ],
+    "branches": 60,
+    "lines": 80,
+    "functions": 70,
+    "statements": 80
   }
 }
