@@ -93,7 +93,7 @@ AMDFormatter.prototype.processClassDeclaration = function(/* mod, nodePath */) {
  * @param {ast-types.NodePath} referencePath
  * @return {ast-types.Expression}
  */
-AMDFormatter.prototype.exportedReference = function(mod, referencePath) {
+AMDFormatter.prototype.exportedReference = function(/* mod, referencePath */) {
   return null;
 };
 
@@ -117,7 +117,7 @@ AMDFormatter.prototype.exportedReference = function(mod, referencePath) {
  * @param {ast-types.NodePath} referencePath
  * @return {?ast-types.Expression}
  */
-AMDFormatter.prototype.importedReference = function(mod, referencePath) {
+AMDFormatter.prototype.importedReference = function(/* mod, referencePath */) {
   return null;
 };
 
@@ -128,7 +128,7 @@ AMDFormatter.prototype.importedReference = function(mod, referencePath) {
  * @param {ast-types.NodePath} referencePath
  * @returns {?ast-types.Node}
  */
-AMDFormatter.prototype.localReference = function(mod, referencePath) {
+AMDFormatter.prototype.localReference = function(/* mod, referencePath */) {
   return null;
 };
 
@@ -223,7 +223,7 @@ AMDFormatter.prototype.processImportDeclaration = function(mod, nodePath) {
  * @param {ast-types.NodePath} nodePath
  * @return {?Replacement}
  */
-AMDFormatter.prototype.processExportReassignment = function (mod, nodePath) {
+AMDFormatter.prototype.processExportReassignment = function (/* mod, nodePath */) {
   return null;
 };
 
