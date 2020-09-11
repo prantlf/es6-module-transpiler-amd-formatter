@@ -12,9 +12,17 @@ var Replacement = require('./lib/replacement');
  * The 'define()' setting for referencing exports aims to produce code that can
  * be used in environments using AMD.
  *
+ * Named modules will be produced, unless `options.namedModules` is set to `false`.
+ *
  * @constructor
+ * @param {object} options
  */
-function AMDFormatter() {}
+function AMDFormatter(options) {
+  // `true` is default for compatibility, the environment variable
+  // helps the command-line usage with `compile-modules convert`
+  this.namedModules = options && options.namedModules !== undefined ? options.namedModules :
+    typeof process !== 'object' || process.env.AMDFORMATTER_NAMED_MODULES !== 'false';
+}
 
 /**
  * Returns an expression which globally references the export named by
@@ -237,7 +245,8 @@ AMDFormatter.prototype.build = function(modules) {
   var self = this;
   return modules.map(function(mod) {
     var body = mod.ast.program.body,
-      meta = self.buildDependenciesMeta(mod);
+      meta = self.buildDependenciesMeta(mod),
+      defineArgs = [];
 
     // setting up all named imports, and re-exporting from as well
     body.unshift.apply(body, self.buildPrelude(mod));
@@ -259,14 +268,19 @@ AMDFormatter.prototype.build = function(modules) {
     );
 
     // wrapping the body of the program with a define() call
-    mod.ast.program.body = [b.expressionStatement(b.callExpression(b.identifier('define'), [
+    if (self.namedModules) {
+      defineArgs.push(
         // module name argument
-        b.literal(mod.name),
-        // depedencies
-        b.arrayExpression(meta.deps.concat(b.literal('exports'))),
-        // factory function
-        b.functionExpression(null, meta.identifiers.concat(b.identifier('__exports__')), b.blockStatement(body))
-    ]))];
+        b.literal(mod.name)
+      );
+    }
+    defineArgs.push(
+      // depedencies
+      b.arrayExpression(meta.deps.concat(b.literal('exports'))),
+      // factory function
+      b.functionExpression(null, meta.identifiers.concat(b.identifier('__exports__')), b.blockStatement(body))
+    );
+    mod.ast.program.body = [b.expressionStatement(b.callExpression(b.identifier('define'), defineArgs))];
 
     mod.ast.filename = mod.relativePath;
     return mod.ast;

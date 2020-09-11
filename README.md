@@ -53,6 +53,25 @@ container.getModule('index');
 container.write('out/mylib.js');
 ```
 
+### Named Modules
+
+Named modules will be produced by default. If you want to process the modules by the [RequireJS] optimizer and let the `r.js` assign the module names, you can configure this formatter to produce unnamed modules.
+
+If you use the command-line tool, set the environment variable `AMDFORMATTER_NAMED_MODULES` to `false`:
+
+```
+AMDFORMATTER_NAMED_MODULES=false ./node_modules/.bin/compile-modules ...
+```
+
+If you use the library, set the option `namedModules` to `false` in the constructor of the formatter:
+
+```javascript
+var container = new Container({
+  resolvers: [new FileResolver(['lib/'])],
+  formatter: new AMDFormatter({ namedModules: false })
+});
+```
+
 ## Supported ES6 Module Syntax
 
 Again, this syntax is in flux and is closely tracking the module work being done by TC39. This package relies on the syntax supported by [es6-module-transpiler], which relies on [esprima], you can have more information about the supported syntax here: https://github.com/square/es6-module-transpiler#supported-es6-module-syntax

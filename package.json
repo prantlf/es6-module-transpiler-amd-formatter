@@ -34,19 +34,18 @@
     "requirejs": "^2.3.6"
   },
   "scripts": {
-    "pretest": "nyc ./node_modules/.bin/compile-modules convert -f ../../../../index.js test/**/*.js -o ./build",
+    "pretest": "nyc --silent ./node_modules/.bin/compile-modules convert -f ../../../../index.js test/**/*.js -o ./build && AMDFORMATTER_NAMED_MODULES=false nyc --silent --no-clean ./node_modules/.bin/compile-modules convert -f ../../../../index.js test/fixtures/6.js -o ./build && nyc --silent --no-clean node test/format-unnamed",
     "posttest": "jshint *.js lib/*.js test/*.js",
-    "test": "mocha"
+    "test": "mocha test/formatter && nyc report && nyc check-coverage"
   },
   "nyc": {
-    "checkCoverage": true,
     "reporter": [
       "lcov",
       "text-summary"
     ],
-    "branches": 60,
+    "branches": 70,
     "lines": 80,
-    "functions": 70,
+    "functions": 75,
     "statements": 80
   }
 }

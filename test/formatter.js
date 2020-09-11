@@ -4,7 +4,8 @@
 
 var chai = require('chai'),
   expect = chai.expect,
-  requirejs = require('requirejs');
+  requirejs = require('requirejs'),
+  fs = require('fs');
 
 requirejs.config({
   baseUrl: __dirname + '/../build'
@@ -48,6 +49,21 @@ describe('amd-formatter', function() {
       expect(mod4.default[2]).to.be.equal('z');
       next();
     });
+  });
+
+  it('outputs named module by default', function() {
+    var output = fs.readFileSync(__dirname + '/../build/test/fixtures/5.js', 'utf-8');
+    expect(output).to.match(/define\("/);
+  });
+
+  it('outputs unnamed module if AMDFORMATTER_NAMED_MODULES is set', function() {
+    var output = fs.readFileSync(__dirname + '/../build/test/fixtures/6.js', 'utf-8');
+    expect(output).to.match(/define\(\[/);
+  });
+
+  it('outputs unnamed module if options.namedModules is set', function() {
+    var output = fs.readFileSync(__dirname + '/../build/test/fixtures/7.js', 'utf-8');
+    expect(output).to.match(/define\(\[/);
   });
 
 });
