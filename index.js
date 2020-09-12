@@ -146,31 +146,48 @@ AMDFormatter.prototype.localReference = function(/* mod, referencePath */) {
  * @return {ast-types.Statement}
  */
 AMDFormatter.prototype.defaultExport = function(mod, declaration) {
-  var exportExpression = mod.exports.declarations.length > 1 ? function (value)  {
-    return b.callExpression(b.identifier('__es6_export__'), [b.literal("default"), value]);
-  } : function (value) {
-    return b.assignmentExpression("=",
-      b.memberExpression(
-        b.identifier('__exports__'),
-        b.literal("default"),
-        true
-      ),
-      value
-    );
-  };
+  var exportStatement, body, lastStatement;
+
+  if (mod.exports.declarations.length > 1) {
+    // a default export statement inside the program body
+    exportStatement = function (value)  {
+      return b.expressionStatement(b.callExpression(
+        b.identifier('__es6_export__'), [b.literal("default"), value]));
+    };
+  } else {
+    body = mod.ast.program.body;
+    lastStatement = body[body.length - 1];
+    if (lastStatement && lastStatement.declaration !== declaration) {
+      // exactly one default export statement inside the program body
+      exportStatement = function (value) {
+        return b.expressionStatement(b.assignmentExpression("=",
+          b.memberExpression(
+            b.identifier('__exports__'),
+            b.literal("default"),
+            true
+          ),
+          value
+        ));
+      };
+    } else {
+      // a default export statement as the last one in the program body
+      exportStatement = function (value) {
+        return b.returnStatement(b.objectExpression([
+          b.property('init', b.literal('default'), value)
+        ]));
+      };
+    }
+  }
   if (n.FunctionDeclaration.check(declaration) ||
       n.ClassDeclaration.check(declaration)) {
     // export default function foo () {}
     // -> becomes:
     // function foo () {}
     // __es6_export__('default', foo);
-    return [
-      declaration,
-      b.expressionStatement(exportExpression(declaration.id))
-    ];
+    return [declaration, exportStatement(declaration.id)];
   }
   // export default {foo: 1};
-  return [b.expressionStatement(exportExpression(declaration))];
+  return [exportStatement(declaration)];
 };
 
 /**
@@ -254,13 +271,16 @@ AMDFormatter.prototype.build = function(modules) {
   return modules.map(function(mod) {
     var body = mod.ast.program.body,
       meta = self.buildDependenciesMeta(mod),
-      oneDefault = mod.exports.declarations.length === 1 && mod.exports.names[0] === 'default',
-      defineArgs = [];
+      oneDefaultExport = mod.exports.declarations.length === 1 && mod.exports.names[0] === 'default',
+      defineArgs = [],
+      dependencies = meta.deps,
+      parameters = meta.identifiers,
+      lastDefaultExport, originalBody, lastStatement;
 
     // setting up all named imports, and re-exporting from as well
     body.unshift.apply(body, self.buildPrelude(mod));
 
-    if (!oneDefault) {
+    if (!oneDefaultExport) {
       body.unshift(
         // function __es6_export__ (name, value) provides a way to set named exports into __exports__
         b.functionDeclaration(b.identifier('__es6_export__'), [b.identifier('name'), b.identifier('value')], b.blockStatement([
@@ -287,11 +307,20 @@ AMDFormatter.prototype.build = function(modules) {
         b.literal(mod.name)
       );
     }
+    if (oneDefaultExport) {
+      originalBody = mod.ast.original.program.body;
+      lastStatement = originalBody[originalBody.length - 1];
+      lastDefaultExport = n.ExportDeclaration.check(lastStatement) && lastStatement.default;
+    }
+    if (!lastDefaultExport) {
+      dependencies = dependencies.concat(b.literal('exports'));
+      parameters = parameters.concat(b.identifier('__exports__'));
+    }
     defineArgs.push(
       // depedencies
-      b.arrayExpression(meta.deps.concat(b.literal('exports'))),
+      b.arrayExpression(dependencies),
       // factory function
-      b.functionExpression(null, meta.identifiers.concat(b.identifier('__exports__')), b.blockStatement(body))
+      b.functionExpression(null, parameters, b.blockStatement(body))
     );
     mod.ast.program.body = [b.expressionStatement(b.callExpression(b.identifier('define'), defineArgs))];
 
@@ -392,7 +421,7 @@ AMDFormatter.prototype.buildPrelude = function(mod) {
 
   mod.exports.names.forEach(function(name) {
     var specifier = mod.exports.findSpecifierByName(name),
-      id, exportExpression;
+      id, exportStatement, originalBody, lastStatement;
 
     assert.ok(
       specifier,
@@ -404,29 +433,47 @@ AMDFormatter.prototype.buildPrelude = function(mod) {
       return;
     }
 
-    exportExpression = mod.exports.declarations.length === 1 &&
-          name === 'default' ? function (value)  {
-      return b.assignmentExpression("=",
-        b.memberExpression(
-          b.identifier('__exports__'),
-          b.literal("default"),
-          true
-        ),
-        value
-      );
-    } : function (value) {
-      return b.callExpression(b.identifier('__es6_export__'), [
-        b.literal(specifier.name), value
-      ]);
-    };
+    if (mod.exports.declarations.length === 1 && name === 'default') {
+      // exactly one default export statement
+      originalBody = mod.ast.original.program.body;
+      lastStatement = originalBody[originalBody.length - 1];
+      if (n.ExportDeclaration.check(lastStatement) && lastStatement.default) {
+        // a default export statement as the last one in the program body
+        exportStatement = function (value) {
+          return b.returnStatement(b.objectExpression([
+            b.property('init', b.literal('default'), value)
+          ]));
+        };
+      } else {
+        // exactly one default export statement inside the program body
+        exportStatement = function (value)  {
+          return b.expressionStatement(b.assignmentExpression("=",
+            b.memberExpression(
+              b.identifier('__exports__'),
+              b.literal("default"),
+              true
+            ),
+            value
+          ));
+        };
+      }
+    } else {
+      // a default export statement inside the program body
+      exportStatement = function (value) {
+        return b.expressionStatement(b.callExpression(
+          b.identifier('__es6_export__'), [b.literal(specifier.name), value]
+        ));
+      };
+    }
+
     id = mod.getModule(specifier.declaration.node.source.value).id;
-    prelude.push(b.expressionStatement(exportExpression(
+    prelude.push(exportStatement(
       b.memberExpression(
         b.identifier(id),
         b.literal(specifier.from),
         true
       )
-    )));
+    ));
   });
 
   return prelude;

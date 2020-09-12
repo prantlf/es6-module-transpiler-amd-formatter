@@ -148,6 +148,50 @@ define("component/foo", ["./assert", "exports"], function(component$assert$$, __
 
 Part of the goal, is try to preserve as much as possible the original code of the module within the factory function. Obviously, this is difficult when you have to export default functions and other declarations. The only modifications you will see in the body are the calls to the `__es6_export__()` method to export the new value when defined or updated, the rest of the code will remain immutable.
 
+### Default export optimisation
+
+If the default export is the single export in a module and it is not the last statement, the `__es6_export__` function will not be generated. For example:
+
+```javascript
+export default function (a, b) {
+  return a + b;
+}
+console.log('done');
+```
+
+will produce something like this:
+
+```javascript
+define("component/foo", ["exports"], function(__exports__) {
+  "use strict";
+
+  __exports__["default"] = function(a, b) {
+    return a + b;
+  };
+  console.log('done');
+});
+```
+
+If the default export is the single export in a module and it is the last statement, it will be returned from the module withotu using the `__exports__` parameter. For example:
+
+```javascript
+export default function (a, b) {
+  return a + b;
+}
+```
+
+will produce something like this:
+
+```javascript
+define("component/foo", [], function() {
+  "use strict";
+
+  return function(a, b) {
+    return a + b;
+  };
+});
+```
+
 ## Contributing
 
 1. Fork it
