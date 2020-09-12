@@ -146,6 +146,18 @@ AMDFormatter.prototype.localReference = function(/* mod, referencePath */) {
  * @return {ast-types.Statement}
  */
 AMDFormatter.prototype.defaultExport = function(mod, declaration) {
+  var exportExpression = mod.exports.declarations.length > 1 ? function (value)  {
+    return b.callExpression(b.identifier('__es6_export__'), [b.literal("default"), value]);
+  } : function (value) {
+    return b.assignmentExpression("=",
+      b.memberExpression(
+        b.identifier('__exports__'),
+        b.literal("default"),
+        true
+      ),
+      value
+    );
+  };
   if (n.FunctionDeclaration.check(declaration) ||
       n.ClassDeclaration.check(declaration)) {
     // export default function foo () {}
@@ -154,15 +166,11 @@ AMDFormatter.prototype.defaultExport = function(mod, declaration) {
     // __es6_export__('default', foo);
     return [
       declaration,
-      b.expressionStatement(
-        b.callExpression(b.identifier('__es6_export__'), [b.literal("default"), declaration.id])
-      )
+      b.expressionStatement(exportExpression(declaration.id))
     ];
   }
   // export default {foo: 1};
-  return [b.expressionStatement(
-    b.callExpression(b.identifier('__es6_export__'), [b.literal("default"), declaration])
-  )];
+  return [b.expressionStatement(exportExpression(declaration))];
 };
 
 /**
@@ -246,25 +254,30 @@ AMDFormatter.prototype.build = function(modules) {
   return modules.map(function(mod) {
     var body = mod.ast.program.body,
       meta = self.buildDependenciesMeta(mod),
+      oneDefault = mod.exports.declarations.length === 1 && mod.exports.names[0] === 'default',
       defineArgs = [];
 
     // setting up all named imports, and re-exporting from as well
     body.unshift.apply(body, self.buildPrelude(mod));
 
+    if (!oneDefault) {
+      body.unshift(
+        // function __es6_export__ (name, value) provides a way to set named exports into __exports__
+        b.functionDeclaration(b.identifier('__es6_export__'), [b.identifier('name'), b.identifier('value')], b.blockStatement([
+          b.expressionStatement(b.assignmentExpression("=",
+            b.memberExpression(
+              b.identifier('__exports__'),
+              b.identifier('name'),
+              true
+            ),
+            b.identifier('value')
+          ))
+        ]))
+      );
+    }
     body.unshift(
       // module body runs in strict mode.
-      b.expressionStatement(b.literal('use strict')),
-      // function __es6_export__ (name, value) provides a way to set named exports into __exports__
-      b.functionDeclaration(b.identifier('__es6_export__'), [b.identifier('name'), b.identifier('value')], b.blockStatement([
-        b.expressionStatement(b.assignmentExpression("=",
-          b.memberExpression(
-            b.identifier('__exports__'),
-            b.identifier('name'),
-            true
-          ),
-          b.identifier('value')
-        ))
-      ]))
+      b.expressionStatement(b.literal('use strict'))
     );
 
     // wrapping the body of the program with a define() call
@@ -379,7 +392,7 @@ AMDFormatter.prototype.buildPrelude = function(mod) {
 
   mod.exports.names.forEach(function(name) {
     var specifier = mod.exports.findSpecifierByName(name),
-      id;
+      id, exportExpression;
 
     assert.ok(
       specifier,
@@ -390,17 +403,30 @@ AMDFormatter.prototype.buildPrelude = function(mod) {
     if (!specifier.declaration.node.source) {
       return;
     }
-    id = mod.getModule(specifier.declaration.node.source.value).id;
-    prelude.push(b.expressionStatement(
-      b.callExpression(b.identifier('__es6_export__'), [
-        b.literal(specifier.name),
+
+    exportExpression = mod.exports.declarations.length === 1 &&
+          name === 'default' ? function (value)  {
+      return b.assignmentExpression("=",
         b.memberExpression(
-          b.identifier(id),
-          b.literal(specifier.from),
+          b.identifier('__exports__'),
+          b.literal("default"),
           true
-        )
-      ])
-    ));
+        ),
+        value
+      );
+    } : function (value) {
+      return b.callExpression(b.identifier('__es6_export__'), [
+        b.literal(specifier.name), value
+      ]);
+    };
+    id = mod.getModule(specifier.declaration.node.source.value).id;
+    prelude.push(b.expressionStatement(exportExpression(
+      b.memberExpression(
+        b.identifier(id),
+        b.literal(specifier.from),
+        true
+      )
+    )));
   });
 
   return prelude;
