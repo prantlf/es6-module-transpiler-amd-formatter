@@ -6,8 +6,6 @@
 [![Dependency Status](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter.svg)](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter)
 [![devDependency Status](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter/dev-status.svg)](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter#info=devDependencies)
 
-[![NPM Downloads](https://nodei.co/npm/connect-route-ext.png?downloads=true&stars=true)](https://www.npmjs.com/package/connect-route-ext)
-
 ES6 Module Transpiler Formatter to Output AMD `define()` Format.
 
 This is a fork of the original project with the following improvements:
