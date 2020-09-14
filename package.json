@@ -1,8 +1,11 @@
 {
-  "name": "es6-module-transpiler-amd-formatter",
-  "version": "0.3.0",
+  "name": "@prantlf/es6-module-transpiler-amd-formatter",
+  "version": "0.4.0",
   "description": "ES6 Module Transpiler Extension to Output AMD define() Format.",
   "author": "Caridy Patino <caridy@gmail.com>",
+  "contributors": [
+    "Ferdinand Prantl <prantlf@gmail.com>"
+  ],
   "homepage": "https://github.com/caridy/es6-module-transpiler-amd-formatter",
   "keywords": [
     "es6",
@@ -14,7 +17,7 @@
   "bugs": "https://github.com/caridy/es6-module-transpiler-amd-formatter/issues",
   "main": "index.js",
   "files": [
-    "lib/",
+    "lib",
     "index.js"
   ],
   "repository": {

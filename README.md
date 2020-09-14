@@ -1,7 +1,21 @@
-es6-module-transpiler-amd-formatter
-===================================
+# es6-module-transpiler-amd-formatter
 
-ES6 Module Transpiler Formatter to Output AMD `define()` Format
+[![NPM version](https://badge.fury.io/js/%40prantlf%2Fes6-module-transpiler-amd-formatter.svg)](https://badge.fury.io/js/%40prantlf%2Fes6-module-transpiler-amd-formatter)
+[![Build Status](https://travis-ci.com/prantlf/es6-module-transpiler-amd-formatter.svg?branch=master)](https://travis-ci.com/prantlf/es6-module-transpiler-amd-formatter)
+[![codecov](https://codecov.io/gh/prantlf/es6-module-transpiler-amd-formatter/branch/master/graph/badge.svg)](https://codecov.io/gh/prantlf/es6-module-transpiler-amd-formatter)
+[![Dependency Status](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter.svg)](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter)
+[![devDependency Status](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter/dev-status.svg)](https://david-dm.org/prantlf/es6-module-transpiler-amd-formatter#info=devDependencies)
+
+[![NPM Downloads](https://nodei.co/npm/connect-route-ext.png?downloads=true&stars=true)](https://www.npmjs.com/package/connect-route-ext)
+
+ES6 Module Transpiler Formatter to Output AMD `define()` Format.
+
+This is a fork of the original project with the following improvements:
+
+* Optional disabling of named modules generation.
+* Optimized code generation if a module has only one export.
+* Default export optimization for project, which mix [ES6] and [AMD.JS] modules.
+* Up-to-date NPM module dependencies, including static code cheks and test code coverage.
 
 ## Overview
 
