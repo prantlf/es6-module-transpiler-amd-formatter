@@ -1,0 +1,50 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "named",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/node_modules/.bin/compile-modules",
+      "args": [
+        "convert", "-f", "../../../../index.js", "test/fixtures/3.js", "-o", "./build"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "unnamed",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/node_modules/.bin/compile-modules",
+      "args": [
+        "convert", "-f", "../../../../index.js", "test/fixtures/5.js", "-o", "./build"
+      ],
+      "env": {
+        "AMDFORMATTER_NAMED_MODULES": "false"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "direct",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/node_modules/.bin/compile-modules",
+      "args": [
+        "convert", "-f", "../../../../index.js", "test/fixtures/9.js", "-o", "./build"
+      ],
+      "env": {
+        "AMDFORMATTER_DIRECT_EXPORTS": "true"
+      }
+    }
+  ]
+}
