@@ -22,6 +22,8 @@ function AMDFormatter(options) {
   // helps the command-line usage with `compile-modules convert`
   this.namedModules = options && options.namedModules !== undefined ? options.namedModules :
     typeof process !== 'object' || process.env.AMDFORMATTER_NAMED_MODULES !== 'false';
+  this.directExports = options && options.directExports !== undefined ? options.directExports :
+    typeof process === 'object' && process.env.AMDFORMATTER_DIRECT_EXPORTS === 'true';
 }
 
 /**
@@ -149,6 +151,9 @@ AMDFormatter.prototype.defaultExport = function(mod, declaration) {
   var exportStatement, body, lastStatement;
 
   if (mod.exports.declarations.length > 1) {
+    if (this.directExports) {
+      throw new Error('more than one default export detected');
+    }
     // a default export statement inside the program body
     exportStatement = function (value)  {
       return b.expressionStatement(b.callExpression(
@@ -159,23 +164,33 @@ AMDFormatter.prototype.defaultExport = function(mod, declaration) {
     lastStatement = body[body.length - 1];
     if (lastStatement && lastStatement.declaration !== declaration) {
       // exactly one default export statement inside the program body
-      exportStatement = function (value) {
-        return b.expressionStatement(b.assignmentExpression("=",
-          b.memberExpression(
-            b.identifier('__exports__'),
-            b.literal("default"),
-            true
-          ),
-          value
-        ));
-      };
+      if (this.directExports) {
+        throw new Error('a default export before the end of module detected');
+      } else {
+        exportStatement = function (value) {
+          return b.expressionStatement(b.assignmentExpression("=",
+            b.memberExpression(
+              b.identifier('__exports__'),
+              b.literal("default"),
+              true
+            ),
+            value
+          ));
+        };
+      }
     } else {
       // a default export statement as the last one in the program body
-      exportStatement = function (value) {
-        return b.returnStatement(b.objectExpression([
-          b.property('init', b.literal('default'), value)
-        ]));
-      };
+      if (this.directExports) {
+        exportStatement = function (value) {
+          return b.returnStatement(value);
+        };
+      } else {
+        exportStatement = function (value) {
+          return b.returnStatement(b.objectExpression([
+            b.property('init', b.literal('default'), value)
+          ]));
+        };
+      }
     }
   }
   if (n.FunctionDeclaration.check(declaration) ||
@@ -344,6 +359,8 @@ AMDFormatter.prototype.buildDependenciesMeta = function(mod) {
   var requiredModules = [];
   var importedModules = [];
   var importedModuleIdentifiers = [];
+  var self = this,
+    importSpecifiers;
 
   // `(import|export) { ... } from 'math'`
   [mod.imports, mod.exports].forEach(function(declarations) {
@@ -352,7 +369,6 @@ AMDFormatter.prototype.buildDependenciesMeta = function(mod) {
         return;
       }
       requiredModules.push(sourceModule);
-      importedModuleIdentifiers.push(b.identifier(sourceModule.id));
 
       var matchingDeclaration;
       declarations.declarations.some(function(declaration) {
@@ -367,6 +383,12 @@ AMDFormatter.prototype.buildDependenciesMeta = function(mod) {
         'no matching declaration for source module: ' + sourceModule.relativePath
       );
 
+      importSpecifiers = matchingDeclaration.specifiers;
+      if (self.directExports && importSpecifiers.length === 1) {
+        importedModuleIdentifiers.push(b.identifier(importSpecifiers[0].name));
+      } else {
+        importedModuleIdentifiers.push(b.identifier(sourceModule.id));
+      }
       importedModules.push(b.literal(matchingDeclaration.sourcePath));
     });
   });
@@ -386,30 +408,41 @@ AMDFormatter.prototype.buildDependenciesMeta = function(mod) {
  * @return {Array[ast-types.Statement]}
  */
 AMDFormatter.prototype.buildPrelude = function(mod) {
-  var prelude = [];
+  var prelude = [],
+    self = this;
 
   // import {foo} from "foo"; should hoist variables declaration
   mod.imports.names.forEach(function (name) {
     var specifier = mod.imports.findSpecifierByName(name),
-      id = mod.getModule(specifier.declaration.node.source.value).id;
+      id;
 
     if (!specifier) {
+      return null;
+    }
+    if (self.directExports && specifier.declaration.specifiers.length === 1) {
       return null;
     }
 
     prelude.push(b.variableDeclaration('var', [b.identifier(specifier.name)]));
 
+    id = mod.getModule(specifier.declaration.node.source.value).id;
     if (specifier.from) {
       // import { value } from './a';
       // import a from './a';
-      prelude.push(b.expressionStatement(b.assignmentExpression("=",
-        b.identifier(specifier.name),
-        b.memberExpression(
-          b.identifier(id),
-          b.literal(specifier.from),
-          true
-        )
-      )));
+      if (self.directExports && specifier.from === 'default') {
+        prelude.push(b.expressionStatement(b.assignmentExpression("=",
+          b.identifier(specifier.name), b.identifier(id)
+        )));
+      } else {
+        prelude.push(b.expressionStatement(b.assignmentExpression("=",
+          b.identifier(specifier.name),
+          b.memberExpression(
+            b.identifier(id),
+            b.literal(specifier.from),
+            true
+          )
+        )));
+      }
     } else {
       // import * as a from './a'
       prelude.push(b.expressionStatement(b.assignmentExpression("=",

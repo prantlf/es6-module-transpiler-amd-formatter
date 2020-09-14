@@ -72,6 +72,62 @@ var container = new Container({
 });
 ```
 
+### Simplified Exports
+
+If you maintain a large project compiled by an [AMD.JS] bundler, you may be looking for a way of supplying modern [ES6] modules, but you will not be able to replace the bundler because of its additional functionality ([RequireJS]) and the existing code base. [ES6] and [AMD.JS] are not entirely compatible, especially when dealing with the default exports. The following rules allow to mix [ES6] and [AMD.JS] modules in a single build:
+
+* Default exports allowed only at the end of a module to allow exporting them by `return` and not by the wrapper `exports` object with the `default` key.
+* A default export imported directly, without the wrapper object with the `default` key.
+* Named exports imported as an object, with the exported names as keys.
+
+Depending on those rules, the following ES6 module:
+
+```javascript
+import assert from "./assert";
+
+export default function (a, b) {
+  assert(a);
+  assert(b);
+  return a + b;
+};
+```
+
+will be transpiled as if it was coded as a native [AMD.JS]:
+
+```javascript
+define("component/foo", ["./assert"], function (assert) {
+  "use strict";
+
+  return function (a, b) {
+    assert(a);
+    assert(b);
+    return a + b;
+  };
+});
+```
+
+[ES6] modules developed for an [AMD.JS] project this way will be reusable in the future, when the bundler will be replaced.
+
+If you use the command-line tool, set the environment variable `AMDFORMATTER_DIRECT_EXPORTS` to `true`:
+
+```
+AMDFORMATTER_DIRECT_EXPORTS=true ./node_modules/.bin/compile-modules ...
+```
+
+If you use the library, set the option `directExports` to `true` in the constructor of the formatter:
+
+```javascript
+var container = new Container({
+  resolvers: [new FileResolver(['lib/'])],
+  formatter: new AMDFormatter({ directExports: true })
+});
+```
+
+You will want to disable the [named modules](#named-modules) generation, if you combine [ES6] and [AMD.JS] modules in a single (build) project and want to let the [RequireJS] optimizer (`r.js`) to generate the module names.
+
+[AMD.JS]: https://github.com/amdjs/amdjs-api#readme
+[ES6]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
+
 ## Supported ES6 Module Syntax
 
 Again, this syntax is in flux and is closely tracking the module work being done by TC39. This package relies on the syntax supported by [es6-module-transpiler], which relies on [esprima], you can have more information about the supported syntax here: https://github.com/square/es6-module-transpiler#supported-es6-module-syntax

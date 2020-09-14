@@ -66,4 +66,15 @@ describe('amd-formatter', function() {
     expect(output).to.match(/define\(\[/);
   });
 
+  it('does not wrap the default export if AMDFORMATTER_DIRECT_EXPORTS is set', function() {
+    var output = fs.readFileSync(__dirname + '/../build/test/fixtures/8.js', 'utf-8');
+    expect(output).to.match(/return \{\}/);
+  });
+
+  it('does not wrap the default export if options.directExports is set', function() {
+    var output = fs.readFileSync(__dirname + '/../build/test/fixtures/9.js', 'utf-8');
+    expect(output).to.match(/return \{\}/);
+    expect(output).to.match(/function\(assert\)/);
+  });
+
 });
